@@ -1,12 +1,12 @@
 import tkinter
 from tkinter import filedialog
-from PIL import ImageTk
+from PIL import ImageTk, ImageGrab
 from tkinter import *
 from PIL import Image
 
 window = tkinter.Tk()
-window.title("David's Image Watermarker")
-window.config(padx=50, pady=10, bg='#ADD8E6', width=600, height=400)
+window.title("Image Watermarker")
+window.config(padx=50, pady=10, bg='#ADD8E6', width=500, height=500)
 
 # Choose photo to watermark, adds to window
 upload = filedialog.askopenfilename(initialdir='/', title="Select an Image",
@@ -14,25 +14,11 @@ upload = filedialog.askopenfilename(initialdir='/', title="Select an Image",
 photo = ImageTk.PhotoImage(Image.open(upload))
 h = photo.height()
 w = photo.width()
-canvas = Canvas(window, bg='#ADD8E6', width=w, height=h, highlightthickness=0)
-canvas.create_image((h / 2), (w / 2), anchor=CENTER, image=photo)
-canvas.pack()
+canvas = Canvas(window, width=w, height=h, highlightthickness=0)
+canvas.create_image((w / 2), (h / 2), image=photo, anchor=CENTER)
+watermark = canvas.create_text(w / 2, h / 2, text='Your Watermark', font=('Calibri Light', 30))
 
-# Parameters allow for changes in text position,
-# font size and font. These all need to be added as buttons which can then be added as variables. Find a list of all
-# the OpenType/Truetype fonts, include them and have them as a drop down box which can then be added to the
-# parameters of the text entry
-
-# Function, input and button to add text to include in the watermark
-
-watermark = canvas.create_text(w / 2, h / 2, text='Your Watermark', font=('OpenSans-Regular.ttf', 30))
-canvas.pack()
-
-# Image sizes to help configure positions
-height_info = tkinter.Label(window, text=f'Image Height (Y): {h}px', bg='#ADD8E6')
-width_info = tkinter.Label(window, text=f'Image Width (X): {w}px', bg='#ADD8E6')
-height_info.pack()
-width_info.pack()
+canvas.grid(column=1, row =0, rowspan=8, padx=(30,0), columnspan=3)
 
 
 def update_watermark():
@@ -42,23 +28,46 @@ def update_watermark():
     size = size_chosen.get()
     x_axis = x_input.get()
     y_axis = y_input.get()
-    canvas.itemconfig(watermark, text=text, font=('OpenSans-Regular.ttf', size), fill=color)
-    canvas.pack()
+    font = font_chosen.get()
+    watermark = canvas.create_text(x_axis, y_axis, text=text, font=(font, size), fill=color)
+    canvas.grid(column=1, row=0, rowspan=8, padx=(30,0), columnspan=3)
 
 
-text_label = tkinter.Label(window, text='Enter Text here.', bg='#ADD8E6')
-text_label.pack()
-text_entry = tkinter.Entry(window)
-text_entry.pack()
+def delete_watermark():
+    global watermark
+    canvas.delete(watermark)
+
+
+def save_image():
+    global photo
+    photo_name = str(photo)
+    x1 = window.winfo_rootx() + canvas.winfo_x()
+    y1 = window.winfo_rooty() + canvas.winfo_y()
+    x2 = x1 + canvas.winfo_width()
+    y2 = y1 + canvas.winfo_height()
+    final_name = photo_name + '_watermark.jpg'
+    file_location = filedialog.askdirectory(title="Save as...")
+    saving_photo = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+    saving_photo.save(f"{file_location}/{final_name}")
+
+
+#Button and input to change watermark text
+default_text = StringVar()
+default_text.set('Your Watermark')
+text_entry = tkinter.Entry(window, textvariable=default_text)
+text_entry.grid(column=0, row=0)
 
 text_entry_button = tkinter.Button(text='Create Watermark', command=update_watermark)
-text_entry_button.pack()
+text_entry_button.grid(column=2, row=8, padx=(30,0))
+
+delete_watermark_button = tkinter.Button(text='Delete Prev', command=delete_watermark)
+delete_watermark_button.grid(column=3, row=8, padx=(30,0))
 
 # Change color of text
 color_chosen = StringVar()
 color_chosen.set('Black')
 color_drop = OptionMenu(window, color_chosen, "Blue", "Black", "Yellow", "Green", "Red")
-color_drop.pack()
+color_drop.grid(column=0, row=1)
 
 # Change size of text
 size_list = []
@@ -68,21 +77,35 @@ for size in range(2, 51)[::2]:
 size_chosen = IntVar()
 size_chosen.set(24)
 size_drop = OptionMenu(window, size_chosen, *size_list)
-size_drop.pack()
+size_drop.grid(column=0, row=2)
 
 
-x_label = tkinter.Label(window, text=f'X Axis Placement. Image Size: {w}px', bg='#ADD8E6')
-x_label.pack()
+#change location of watermark x and y
+x_label = tkinter.Label(window, text=f'X Axis. Image Size: {w}px', bg='#ADD8E6')
+x_label.grid(column=0, row=4)
 x_chosen = IntVar()
-x_chosen.set(w/2)
-x_input = tkinter.Entry(window)
-x_input.pack()
+x_chosen.set(round(w / 2))
+x_input = tkinter.Entry(window, textvariable=x_chosen)
+x_input.grid(column=0, row=5)
 
-y_label = tkinter.Label(window, text=f'Y Axis Placement. Image Size: {h}px', bg='#ADD8E6')
-y_label.pack()
+y_label = tkinter.Label(window, text=f'Y Axis. Image Size: {h}px', bg='#ADD8E6')
+y_label.grid(column=0, row=6)
 y_chosen = IntVar()
-y_chosen.set(h/2)
-y_input = tkinter.Entry(window)
-y_input.pack()
+y_chosen.set(round(h / 2))
+y_input = tkinter.Entry(window, textvariable=y_chosen)
+y_input.grid(column=0, row=7)
+
+
+#change font of watermark
+font_list = ['Calibri Light', 'Times New Roman', 'Courier New', 'Arial', 'Courier', 'MS Serif']
+font_chosen = StringVar()
+font_chosen.set('Calibri Light')
+font_drop = OptionMenu(window, font_chosen, *font_list)
+font_drop.grid(column=0, row=3)
+
+#save button
+save_button = Button(text='Save As', command=save_image)
+save_button.grid(column=1, row=8, pady=(20,20), padx=(30,0))
+
 
 window.mainloop()
